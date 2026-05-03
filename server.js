@@ -44,13 +44,19 @@ async function initDatabase() {
       CREATE TABLE IF NOT EXISTS transactions (
         id          SERIAL PRIMARY KEY,
         user_id     INTEGER NOT NULL,
-        type        TEXT    NOT NULL CHECK(type IN ('지급','사용')),
+        type        TEXT    NOT NULL CHECK(type IN ('지급','사용','쿠폰사용')),
         amount      INTEGER NOT NULL,
         description TEXT,
         created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
+
+    // 기존 제약 조건 업데이트 (이미 존재할 경우 대비)
+    try {
+      await client.query("ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_type_check");
+      await client.query("ALTER TABLE transactions ADD CONSTRAINT transactions_type_check CHECK (type IN ('지급', '사용', '쿠폰사용'))");
+    } catch (e) { /* ignore */ }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS coupons (
@@ -277,6 +283,12 @@ app.post('/api/coupons/:id/use', async (req, res) => {
     await client.query(
       "UPDATE coupons SET is_used = 1, used_at = CURRENT_TIMESTAMP WHERE id = $1",
       [couponId]
+    );
+
+    // 거래 내역에 쿠폰 사용 기록 추가
+    await client.query(
+      "INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, '쿠폰사용', 0, $2)",
+      [coupon.user_id, `쿠폰 사용: ${coupon.item_name}`]
     );
 
     await client.query('COMMIT');

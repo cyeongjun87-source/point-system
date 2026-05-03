@@ -470,6 +470,11 @@ body {
   color: var(--red);
 }
 
+.badge-coupon-use {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
 /* ── User List (Admin) ── */
 .user-list {
   display: flex;

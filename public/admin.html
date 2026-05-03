@@ -240,8 +240,8 @@
       $tbody.innerHTML = allTx.slice(0, 20).map(t => `
         <tr>
           <td>${t._userName}</td>
-          <td><span class="badge ${t.type === '지급' ? 'badge-grant' : 'badge-use'}">${t.type}</span></td>
-          <td class="${t.amount > 0 ? 'text-green' : 'text-red'}">${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()}P</td>
+          <td><span class="badge ${t.type === '지급' ? 'badge-grant' : (t.type === '사용' ? 'badge-use' : 'badge-coupon-use')}">${t.type}</span></td>
+          <td class="${t.amount > 0 ? 'text-green' : (t.amount < 0 ? 'text-red' : 'text-muted')}">${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()}P</td>
           <td>${t.description || '-'}</td>
           <td class="text-muted">${t.created_at.replace('T', ' ')}</td>
         </tr>`).join('');
