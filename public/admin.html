@@ -119,7 +119,7 @@
               stroke-linejoin="round" />
           </svg>
         </div>
-        <h2 class="card-title">쿠폰 사용 로그</h2>
+        <h2 class="card-title">쿠폰 사용 내역</h2>
       </div>
       <div class="table-wrapper">
         <table class="table">
@@ -206,14 +206,18 @@
       const $empty = document.getElementById('couponLogEmpty');
       if (logs.length === 0) { $tbody.innerHTML = ''; $empty.style.display = 'block'; return; }
       $empty.style.display = 'none';
-      $tbody.innerHTML = logs.map(l => `
+      $tbody.innerHTML = logs.map(l => {
+        const pDate = l.purchased_at.replace('T', ' ');
+        const uDate = l.used_at.replace('T', ' ');
+        return `
         <tr>
           <td>${l.user_name}</td>
           <td>${l.item_name}</td>
           <td class="text-red">-${l.item_price.toLocaleString()}P</td>
-          <td class="text-muted">${l.purchased_at}</td>
-          <td class="text-muted">${l.used_at}</td>
-        </tr>`).join('');
+          <td class="text-muted">${pDate}</td>
+          <td class="text-muted">${uDate}</td>
+        </tr>`;
+      }).join('');
     }
 
     async function loadAllTransactions() {
@@ -239,7 +243,7 @@
           <td><span class="badge ${t.type === '지급' ? 'badge-grant' : 'badge-use'}">${t.type}</span></td>
           <td class="${t.amount > 0 ? 'text-green' : 'text-red'}">${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()}P</td>
           <td>${t.description || '-'}</td>
-          <td class="text-muted">${t.created_at}</td>
+          <td class="text-muted">${t.created_at.replace('T', ' ')}</td>
         </tr>`).join('');
     }
 

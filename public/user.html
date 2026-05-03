@@ -188,7 +188,7 @@
             </div>
             <div>
               <div class="coupon-name">${c.item_name}</div>
-              <div class="coupon-meta">${c.item_price.toLocaleString()}P · ${c.purchased_at}</div>
+              <div class="coupon-meta">${c.item_price.toLocaleString()}P · ${c.purchased_at.replace('T', ' ')}</div>
             </div>
           </div>
           <button class="btn btn-use use-coupon-btn" data-coupon-id="${c.id}" data-coupon-name="${c.item_name}">사용하기</button>
@@ -221,7 +221,7 @@
           <td><span class="badge ${t.type === '지급' ? 'badge-grant' : 'badge-use'}">${t.type}</span></td>
           <td class="${t.amount > 0 ? 'text-green' : 'text-red'}">${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()}P</td>
           <td>${t.description || '-'}</td>
-          <td class="text-muted">${t.created_at}</td>
+          <td class="text-muted">${t.created_at.replace('T', ' ')}</td>
         </tr>`).join('');
     }
 

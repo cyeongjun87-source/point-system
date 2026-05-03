@@ -140,7 +140,7 @@ app.get('/api/users/:id', async (req, res) => {
 app.get('/api/users/:id/transactions', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT *, TO_CHAR(created_at, \'YYYY-MM-DD HH24:MI:SS\') as created_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT *, TO_CHAR(created_at, \'YYYY-MM-DD"T"HH24:MI:SS\') as created_at FROM transactions WHERE user_id = $1 ORDER BY id DESC',
       [Number(req.params.id)]
     );
     res.json(result.rows);
@@ -221,10 +221,10 @@ app.post('/api/buy', async (req, res) => {
     // 포인트 차감
     await client.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [item.price, user_id]);
 
-    // 거래 내역 기록
+    // 거래 내역 기록 (구매이므로 마이너스 금액)
     await client.query(
       "INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, '사용', $2, $3)",
-      [user_id, item.price, `${item.name} 구매`]
+      [user_id, -item.price, `${item.name} 구매`]
     );
 
     // 쿠폰 발급
@@ -249,7 +249,7 @@ app.post('/api/buy', async (req, res) => {
 app.get('/api/users/:id/coupons', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT *, TO_CHAR(purchased_at, \'YYYY-MM-DD HH24:MI:SS\') as purchased_at FROM coupons WHERE user_id = $1 AND is_used = 0 ORDER BY purchased_at DESC',
+      'SELECT *, TO_CHAR(purchased_at, \'YYYY-MM-DD"T"HH24:MI:SS\') as purchased_at FROM coupons WHERE user_id = $1 AND is_used = 0 ORDER BY id DESC',
       [Number(req.params.id)]
     );
     res.json(result.rows);
@@ -294,8 +294,8 @@ app.get('/api/admin/coupon-logs', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.id, c.item_name, c.item_price, 
-             TO_CHAR(c.purchased_at, 'YYYY-MM-DD HH24:MI:SS') as purchased_at, 
-             TO_CHAR(c.used_at, 'YYYY-MM-DD HH24:MI:SS') as used_at, 
+             TO_CHAR(c.purchased_at, 'YYYY-MM-DD"T"HH24:MI:SS') as purchased_at, 
+             TO_CHAR(c.used_at, 'YYYY-MM-DD"T"HH24:MI:SS') as used_at, 
              u.name as user_name
       FROM coupons c
       JOIN users u ON c.user_id = u.id
