@@ -546,3 +546,90 @@ body {
   font-size: 0.65rem;
   margin-left: 0.5rem;
 }
+
+/* ── Login Page ── */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 1;
+  position: relative;
+}
+
+.logo-area {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.logo-icon {
+  margin-bottom: 1rem;
+}
+
+.logo-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-heading);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.logo-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.card-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper .form-select {
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.footer-text {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.input-error {
+  animation: shake 0.4s ease-in-out;
+  border-color: var(--red) !important;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
