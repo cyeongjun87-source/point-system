@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="최병훈 포인트 시스템 - 최병훈 복지 포인트 관리">
+  <title>최병훈 포인트 시스템</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="login-container" id="loginContainer">
+    <!-- 로고 영역 -->
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="18" stroke="url(#grad)" stroke-width="3" fill="none" />
+          <text x="20" y="26" text-anchor="middle" fill="url(#grad)" font-size="18" font-weight="800"
+            font-family="Inter">P</text>
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#6366f1" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1 class="logo-title">Point System</h1>
+      <p class="logo-subtitle">최병훈 포인트 관리 플랫폼</p>
+    </div>
+
+    <!-- 로그인 카드 -->
+    <div class="card login-card">
+      <h2 class="card-title">로그인</h2>
+      <p class="card-desc">이름을 선택하여 접속하세요</p>
+
+      <div class="form-group">
+        <label for="userSelect" class="form-label">사용자 선택</label>
+        <div class="select-wrapper">
+          <select id="userSelect" class="form-select">
+            <option value="" disabled selected>이름을 선택하세요...</option>
+          </select>
+          <div class="select-arrow">
+            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 관리자 비밀번호 입력 (기본 숨김) -->
+      <div class="form-group" id="passwordGroup" style="display:none;">
+        <label for="adminPassword" class="form-label">관리자 비밀번호</label>
+        <input type="password" id="adminPassword" class="form-input" placeholder="비밀번호를 입력하세요">
+        <p class="form-error" id="passwordError" style="display:none;">비밀번호가 올바르지 않습니다.</p>
+      </div>
+
+      <button id="loginBtn" class="btn btn-primary btn-full" disabled>
+        <span>접속하기</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+
+    <p class="footer-text">© 2026 Point System · All rights reserved</p>
+  </div>
+
+  <script>
+    const $select = document.getElementById('userSelect');
+    const $btn = document.getElementById('loginBtn');
+    const $pwGroup = document.getElementById('passwordGroup');
+    const $pwInput = document.getElementById('adminPassword');
+    const $pwError = document.getElementById('passwordError');
+
+    // 유저 목록 로드
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(users => {
+        users.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = u.name;
+          opt.dataset.name = u.name;
+          $select.appendChild(opt);
+        });
+      });
+
+    // 유저 선택 시 관리자면 비밀번호 필드 표시
+    $select.addEventListener('change', () => {
+      $btn.disabled = !$select.value;
+      const userName = $select.options[$select.selectedIndex].dataset.name;
+      if (userName === '관리자') {
+        $pwGroup.style.display = 'flex';
+        $pwInput.focus();
+      } else {
+        $pwGroup.style.display = 'none';
+        $pwInput.value = '';
+        $pwError.style.display = 'none';
+      }
+    });
+
+    $btn.addEventListener('click', async () => {
+      const userId = $select.value;
+      const userName = $select.options[$select.selectedIndex].dataset.name;
+
+      if (userName === '관리자') {
+        // 비밀번호 검증
+        $btn.disabled = true;
+        $pwError.style.display = 'none';
+
+        try {
+          const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: $pwInput.value })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            window.location.href = `admin.html?id=${userId}&name=${encodeURIComponent(userName)}`;
+          } else {
+            $pwError.style.display = 'block';
+            $pwInput.classList.add('input-error');
+            setTimeout(() => $pwInput.classList.remove('input-error'), 600);
+            $btn.disabled = false;
+          }
+        } catch (err) {
+          alert('오류 발생: ' + err.message);
+          $btn.disabled = false;
+        }
+      } else {
+        // 일반 사용자는 바로 접속
+        window.location.href = `user.html?id=${userId}&name=${encodeURIComponent(userName)}`;
+      }
+    });
+
+    // Enter 키로 로그인
+    $pwInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $btn.click();
+      }
+    });
+  </script>
+</body>
+
+</html>
