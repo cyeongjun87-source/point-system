@@ -84,11 +84,14 @@ async function initDatabase() {
       )
     `);
 
-    // 기존 제약 조건 업데이트
+    // 기존 제약 조건 업데이트 및 컬럼 추가 (이미 존재할 경우 대비)
     try {
+      await client.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS mission_id INTEGER REFERENCES missions(id)");
       await client.query("ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_type_check");
       await client.query("ALTER TABLE transactions ADD CONSTRAINT transactions_type_check CHECK (type IN ('지급', '사용', '쿠폰사용', '업적보상'))");
-    } catch (e) {}
+    } catch (e) {
+      console.log("⚠️ Migration Notice:", e.message);
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS coupons (

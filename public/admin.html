@@ -215,20 +215,36 @@
 
     document.getElementById('grantForm').onsubmit = async (e) => {
       e.preventDefault();
+      const userId = document.getElementById('targetUser').value;
+      if (!userId) return alert('지급 대상을 선택해주세요.');
+
       const missionId = document.getElementById('targetMission').value;
       const opt = document.getElementById('targetMission').selectedOptions[0];
+      const amount = missionId ? parseInt(opt.dataset.points) : parseInt(document.getElementById('grantAmount').value);
+      const description = missionId ? `미션 완료: ${opt.dataset.name}` : document.getElementById('grantDesc').value;
+
+      if (!amount || amount === 0) return alert('지급할 금액을 입력해주세요.');
+
       const body = {
-        user_id: parseInt(document.getElementById('targetUser').value),
-        amount: missionId ? parseInt(opt.dataset.points) : parseInt(document.getElementById('grantAmount').value),
-        description: missionId ? `미션 완료: ${opt.dataset.name}` : document.getElementById('grantDesc').value,
+        user_id: parseInt(userId),
+        amount: amount,
+        description: description,
         mission_id: missionId ? parseInt(missionId) : null
       };
-      const res = await fetch('/api/grant', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-      });
-      if ((await res.json()).success) {
-        alert('지급 완료!');
-        loadStats(); loadUsers(); loadAllTransactions();
+      
+      try {
+        const res = await fetch('/api/grant', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert('지급 완료!');
+          loadStats(); loadUsers(); loadAllTransactions();
+        } else {
+          alert('오류 발생: ' + (result.error || '알 수 없는 오류'));
+        }
+      } catch (err) {
+        alert('서버 연결 오류: ' + err.message);
       }
     };
 
