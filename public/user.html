@@ -74,6 +74,24 @@
     </div>
   </main>
 
+  <!-- 업적 상세 모달 -->
+  <div id="achievementModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="achievement-icon" id="modalAchiIcon" style="margin:0; width:50px; height:50px; font-size:1.5rem"></div>
+        <div style="flex:1; margin-left:1rem">
+          <h2 class="modal-title" id="modalAchiName">업적 이름</h2>
+          <div class="achievement-points" id="modalAchiPoints">+0P</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalAchiDesc" style="color:var(--text); line-height:1.6">업적 달성 방법 설명...</p>
+        <div id="modalAchiStatus" style="margin-top:1.5rem"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const params = new URLSearchParams(location.search);
     const userId = params.get('id');
@@ -89,8 +107,9 @@
     async function loadAchievements() {
       const res = await fetch(`/api/users/${userId}/achievements`);
       const achis = await res.json();
-      document.getElementById('achievementGrid').innerHTML = achis.map(a => `
-        <div class="achievement-card ${a.earned ? 'earned' : ''}">
+      const $grid = document.getElementById('achievementGrid');
+      $grid.innerHTML = achis.map(a => `
+        <div class="achievement-card ${a.earned ? 'earned' : ''}" onclick='showAchiDetail(${JSON.stringify(a).replace(/'/g, "&apos;")})'>
           <div class="achievement-icon"><i data-lucide="${a.icon}"></i></div>
           <div class="achievement-name">${a.name}</div>
           <div class="achievement-points">+${a.bonus_points}P</div>
@@ -98,6 +117,33 @@
       `).join('');
       lucide.createIcons();
     }
+
+    function showAchiDetail(achi) {
+      document.getElementById('modalAchiIcon').innerHTML = `<i data-lucide="${achi.icon}"></i>`;
+      document.getElementById('modalAchiName').textContent = achi.name;
+      document.getElementById('modalAchiPoints').textContent = `+${achi.bonus_points}P 보너스`;
+      document.getElementById('modalAchiDesc').textContent = achi.description;
+      
+      const $status = document.getElementById('modalAchiStatus');
+      if (achi.earned) {
+        $status.innerHTML = `<div class="badge badge-grant" style="width:100%; justify-content:center; padding:0.75rem">획득 완료 ✨</div>`;
+      } else {
+        $status.innerHTML = `<div class="badge" style="width:100%; justify-content:center; padding:0.75rem; background:rgba(255,255,255,0.05); color:var(--text-muted)">미획득</div>`;
+      }
+      
+      document.getElementById('achievementModal').style.display = 'flex';
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      document.getElementById('achievementModal').style.display = 'none';
+    }
+
+    // 모달 바깥 클릭 시 닫기
+    window.onclick = (e) => {
+      const modal = document.getElementById('achievementModal');
+      if (e.target === modal) closeModal();
+    };
 
     async function loadMissions() {
       const res = await fetch('/api/missions');
