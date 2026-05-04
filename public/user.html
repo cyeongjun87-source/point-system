@@ -196,7 +196,7 @@
               <div>
                 <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
                 <div class="mission-desc">${m.description}</div>
-                ${m.cleanName.includes('스쿼트') ? `<button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startSquatMission(${m.id}, ${m.points}, parseInt('${m.goal}'))">시작하기</button>` : ''}
+                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startMission(${m.id}, ${m.points}, parseInt('${m.goal}'), '${m.cleanName}')">시작하기</button>
               </div>
             </div>
             <div class="mission-points">${m.points}<span>P</span></div>
@@ -213,7 +213,7 @@
               <div>
                 <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
                 <div class="mission-desc">${m.description}</div>
-                ${m.cleanName.includes('스쿼트') ? `<button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startSquatMission(${m.id}, ${m.points}, parseInt('${m.goal}'))">시작하기</button>` : ''}
+                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startMission(${m.id}, ${m.points}, parseInt('${m.goal}'), '${m.cleanName}')">시작하기</button>
               </div>
             </div>
             <div class="mission-points">${m.points}<span>P</span></div>
@@ -296,7 +296,14 @@
       return angle;
     }
 
-    function startSquatMission(id, points, target) {
+    function startMission(id, points, target, name) {
+      if (!name.includes('스쿼트')) {
+        if (confirm(`'${name}' 미션을 완료하시겠습니까? (현재 자동 카운팅은 스쿼트만 지원됩니다)`)) {
+          grantMissionPoints(id, points, name, false);
+        }
+        return;
+      }
+
       currentMissionId = id;
       currentMissionPoints = points;
       targetSquats = target || 30; // default 30
@@ -304,6 +311,7 @@
       isSquatDown = false;
       isExercising = true;
 
+      document.getElementById('exerciseModal').querySelector('.modal-title').textContent = `${name} 미션 진행 중`;
       document.getElementById('squatCount').textContent = squatCount;
       document.getElementById('squatTarget').textContent = targetSquats;
       document.getElementById('exerciseModal').style.display = 'flex';
@@ -388,7 +396,8 @@
             document.getElementById('squatCount').textContent = squatCount;
 
             if (squatCount >= targetSquats) {
-              completeSquatMission();
+              stopExercise();
+              grantMissionPoints(currentMissionId, currentMissionPoints, '스쿼트', true);
             }
           }
         } else {
@@ -398,9 +407,8 @@
       }
     }
 
-    async function completeSquatMission() {
-      stopExercise();
-      alert('스쿼트 미션 성공! 포인트가 지급됩니다.');
+    async function grantMissionPoints(id, points, name, isAuto) {
+      alert(`${name} 미션 완료! 포인트가 지급됩니다.`);
       
       try {
         const res = await fetch('/api/grant', {
@@ -408,9 +416,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: parseInt(userId),
-            amount: currentMissionPoints,
-            description: '미션 완료: 스쿼트 자동 카운팅',
-            mission_id: currentMissionId
+            amount: points,
+            description: isAuto ? `미션 완료: ${name} (자동 카운팅)` : `미션 완료: ${name}`,
+            mission_id: id
           })
         });
         const result = await res.json();
