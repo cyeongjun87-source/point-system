@@ -128,11 +128,13 @@ async function initDatabase() {
     const missionRes = await client.query("SELECT COUNT(*) FROM missions");
     if (parseInt(missionRes.rows[0].count) === 0) {
       const missions = [
-        ['플랭크', '1분 유지', 50, '코어 강화! 버티기 힘들면 "화이팅" 응원 포함', 'clock'],
-        ['스쿼트', '30번', 30, '허벅지 근육은 콜레스테롤 소모 창고!', 'gem'],
-        ['윗몸일으키기', '30번', 30, '복근 힘 기르기', 'heart'],
-        ['버피 테스트', '50번', 100, '가장 힘든 운동이므로 보너스 점수 부여!', 'zap'],
-        ['팔굽혀펴기', '10번', 20, '상체 근력 강화', 'arm']
+        ['[하체] 스쿼트', '30번', 50, '튼튼한 하체를 위한 필수 운동', 'activity'],
+        ['[하체] 사이드 스텝', '30번', 50, '하체와 심폐지구력을 동시에!', 'move-horizontal'],
+        ['[하체] 슬로우 버피', '15번', 30, '층간소음 걱정 없는 전신 운동', 'activity'],
+        ['[상체/코어] 힙 브릿지', '30번', 50, '코어와 둔근 강화', 'dumbbell'],
+        ['[상체/코어] 레그 레이즈', '30번', 60, '강력한 하복부 만들기', 'activity'],
+        ['[유산소] 자전거', '10km당', 30, '시원한 바람을 가르며 라이딩', 'bike'],
+        ['[유산소] 걷기', '30분당', 30, '가볍게 걸으며 건강 챙기기', 'footprints']
       ];
       for (const [n, g, p, d, i] of missions) 
         await client.query("INSERT INTO missions (name, goal, points, description, icon) VALUES ($1, $2, $3, $4, $5)", [n, g, p, d, i]);

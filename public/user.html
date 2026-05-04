@@ -148,18 +148,54 @@
     async function loadMissions() {
       const res = await fetch('/api/missions');
       const missions = await res.json();
-      document.getElementById('missionList').innerHTML = missions.map(m => `
-        <div class="mission-item">
-          <div class="mission-left">
-            <div class="mission-icon"><i data-lucide="${m.icon || 'star'}"></i></div>
-            <div>
-              <div class="mission-name">${m.name} <span class="mission-goal">${m.goal}</span></div>
-              <div class="mission-desc">${m.description}</div>
+      
+      const grouped = {};
+      const noCategory = [];
+      missions.forEach(m => {
+        const match = m.name.match(/^\[(.*?)\]\s*(.*)$/);
+        if (match) {
+          const cat = match[1];
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push({ ...m, cleanName: match[2] });
+        } else {
+          noCategory.push({ ...m, cleanName: m.name });
+        }
+      });
+
+      let html = '';
+      for (const [cat, list] of Object.entries(grouped)) {
+        html += `<div class="badge" style="margin-top: 1rem; margin-bottom: 0.5rem; background: var(--primary); color: white;"># ${cat}</div>`;
+        html += list.map(m => `
+          <div class="mission-item" style="margin-bottom: 0.5rem;">
+            <div class="mission-left">
+              <div class="mission-icon"><i data-lucide="${m.icon || 'star'}"></i></div>
+              <div>
+                <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
+                <div class="mission-desc">${m.description}</div>
+              </div>
             </div>
+            <div class="mission-points">${m.points}<span>P</span></div>
           </div>
-          <div class="mission-points">${m.points}<span>P</span></div>
-        </div>
-      `).join('');
+        `).join('');
+      }
+
+      if (noCategory.length > 0) {
+        html += `<div class="badge" style="margin-top: 1rem; margin-bottom: 0.5rem; background: var(--primary); color: white;"># 기타</div>`;
+        html += noCategory.map(m => `
+          <div class="mission-item" style="margin-bottom: 0.5rem;">
+            <div class="mission-left">
+              <div class="mission-icon"><i data-lucide="${m.icon || 'star'}"></i></div>
+              <div>
+                <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
+                <div class="mission-desc">${m.description}</div>
+              </div>
+            </div>
+            <div class="mission-points">${m.points}<span>P</span></div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('missionList').innerHTML = html;
       lucide.createIcons();
     }
 
