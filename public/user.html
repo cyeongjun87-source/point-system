@@ -9,7 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-</head>
+  <!-- MediaPipe Pose -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
 <body>
   <div class="bg-glow bg-glow-1"></div>
@@ -88,6 +92,26 @@
       <div class="modal-body">
         <p id="modalAchiDesc" style="color:var(--text); line-height:1.6">업적 달성 방법 설명...</p>
         <div id="modalAchiStatus" style="margin-top:1.5rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 운동 미션 모달 -->
+  <div id="exerciseModal" class="modal-overlay" style="display:none; z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 class="modal-title">스쿼트 미션 진행 중</h2>
+        <button class="modal-close" onclick="stopExercise()">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center; position: relative;">
+        <div id="warningMsg" style="display:none; color: white; background: var(--red, #ef4444); padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1rem; font-weight: bold;">몸 전체가 보이게 물러나 주세요</div>
+        <div style="position: relative; display: inline-block; width: 100%; max-width: 640px;">
+          <video id="input_video" style="display: none;"></video>
+          <canvas id="output_canvas" width="640" height="480" style="width: 100%; height: auto; border-radius: 0.5rem; background: #000;"></canvas>
+          <div style="position: absolute; top: 1rem; left: 1rem; background: rgba(0,0,0,0.6); padding: 1rem 1.5rem; border-radius: 1rem; color: white; font-size: 2rem; font-weight: 800;">
+            <span id="squatCount">0</span> / <span id="squatTarget">30</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -172,6 +196,7 @@
               <div>
                 <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
                 <div class="mission-desc">${m.description}</div>
+                ${m.cleanName.includes('스쿼트') ? `<button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startSquatMission(${m.id}, ${m.points}, parseInt('${m.goal}'))">시작하기</button>` : ''}
               </div>
             </div>
             <div class="mission-points">${m.points}<span>P</span></div>
@@ -188,6 +213,7 @@
               <div>
                 <div class="mission-name">${m.cleanName} <span class="mission-goal">${m.goal}</span></div>
                 <div class="mission-desc">${m.description}</div>
+                ${m.cleanName.includes('스쿼트') ? `<button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="startSquatMission(${m.id}, ${m.points}, parseInt('${m.goal}'))">시작하기</button>` : ''}
               </div>
             </div>
             <div class="mission-points">${m.points}<span>P</span></div>
@@ -252,6 +278,166 @@
     }
 
     loadBalance(); loadAchievements(); loadMissions(); loadItems(); loadCoupons(); loadTransactions();
+
+    // --- 실시간 운동 카운터 (MediaPipe Pose) ---
+    let currentMissionId = null;
+    let currentMissionPoints = 0;
+    let targetSquats = 0;
+    let squatCount = 0;
+    let isSquatDown = false;
+    let camera = null;
+    let pose = null;
+    let isExercising = false;
+
+    function calculateAngle(a, b, c) {
+      const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+      let angle = Math.abs(radians * 180.0 / Math.PI);
+      if (angle > 180.0) angle = 360 - angle;
+      return angle;
+    }
+
+    function startSquatMission(id, points, target) {
+      currentMissionId = id;
+      currentMissionPoints = points;
+      targetSquats = target || 30; // default 30
+      squatCount = 0;
+      isSquatDown = false;
+      isExercising = true;
+
+      document.getElementById('squatCount').textContent = squatCount;
+      document.getElementById('squatTarget').textContent = targetSquats;
+      document.getElementById('exerciseModal').style.display = 'flex';
+      document.getElementById('warningMsg').style.display = 'none';
+
+      const videoElement = document.getElementById('input_video');
+      const canvasElement = document.getElementById('output_canvas');
+      const canvasCtx = canvasElement.getContext('2d');
+
+      pose = new Pose({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        smoothSegmentation: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      pose.onResults(onResults);
+
+      camera = new Camera(videoElement, {
+        onFrame: async () => {
+          if (isExercising) {
+            await pose.send({image: videoElement});
+          }
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+
+      function onResults(results) {
+        if (!isExercising) return;
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        if (results.poseLandmarks) {
+          drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+          drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+
+          const landmarks = results.poseLandmarks;
+          
+          // Hip(24, 23), Knee(26, 25), Ankle(28, 27)
+          const leftHip = landmarks[23];
+          const leftKnee = landmarks[25];
+          const leftAnkle = landmarks[27];
+          const rightHip = landmarks[24];
+          const rightKnee = landmarks[26];
+          const rightAnkle = landmarks[28];
+
+          const isVisible = (l) => l && l.visibility > 0.5;
+          if (!(isVisible(leftHip) && isVisible(leftKnee) && isVisible(leftAnkle)) &&
+              !(isVisible(rightHip) && isVisible(rightKnee) && isVisible(rightAnkle))) {
+            document.getElementById('warningMsg').style.display = 'block';
+            canvasCtx.restore();
+            return;
+          } else {
+            document.getElementById('warningMsg').style.display = 'none';
+          }
+
+          let hip, knee, ankle;
+          if (isVisible(leftHip) && isVisible(leftKnee) && isVisible(leftAnkle)) {
+            hip = leftHip; knee = leftKnee; ankle = leftAnkle;
+          } else {
+            hip = rightHip; knee = rightKnee; ankle = rightAnkle;
+          }
+
+          const angle = calculateAngle(hip, knee, ankle);
+
+          if (angle <= 100) {
+            isSquatDown = true;
+          } else if (angle >= 160 && isSquatDown) {
+            isSquatDown = false;
+            squatCount++;
+            document.getElementById('squatCount').textContent = squatCount;
+
+            if (squatCount >= targetSquats) {
+              completeSquatMission();
+            }
+          }
+        } else {
+          document.getElementById('warningMsg').style.display = 'block';
+        }
+        canvasCtx.restore();
+      }
+    }
+
+    async function completeSquatMission() {
+      stopExercise();
+      alert('스쿼트 미션 성공! 포인트가 지급됩니다.');
+      
+      try {
+        const res = await fetch('/api/grant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: parseInt(userId),
+            amount: currentMissionPoints,
+            description: '미션 완료: 스쿼트 자동 카운팅',
+            mission_id: currentMissionId
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          loadBalance();
+          loadTransactions();
+          loadAchievements();
+        } else {
+          alert('포인트 지급 오류: ' + result.error);
+        }
+      } catch (err) {
+        alert('서버 연결 오류: ' + err.message);
+      }
+    }
+
+    function stopExercise() {
+      isExercising = false;
+      if (camera) {
+        camera.stop();
+        camera = null;
+      }
+      if (pose) {
+        pose.close();
+        pose = null;
+      }
+      document.getElementById('exerciseModal').style.display = 'none';
+    }
   </script>
 </body>
 </html>
